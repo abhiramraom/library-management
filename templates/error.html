@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+
+{% block title %}Error - Library Management System{% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 3rem;">
+    <h1 style="font-size: 3rem; color: #dc3545; margin-bottom: 1rem;">⚠️ Error</h1>
+    <p style="font-size: 1.2rem; color: #666; margin-bottom: 2rem;">{{ error }}</p>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">← Back to Home</a>
+</div>
+{% endblock %}
