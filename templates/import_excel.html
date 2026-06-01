@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Import Excel - Library Management System{% endblock %}
+
+{% block content %}
+<div class="breadcrumb">
+    <a href="{{ url_for('index') }}">Books</a>
+    <span>/</span>
+    <span>Import Excel</span>
+</div>
+
+<h2>📥 Import Books from Excel</h2>
+
+<div style="background: #e8f4f8; padding: 1.5rem; border-radius: 8px; margin-bottom: 2rem; border-left: 4px solid #0288d1;">
+    <h4>📋 Instructions:</h4>
+    <ul style="margin-left: 1.5rem; margin-top: 0.5rem;">
+        <li>Your Excel file should have the following columns: Title, Sub Title, Language, Editor, Author, Publishers, Place, Country, Year, Edition</li>
+        <li>The first row should be headers (column names)</li>
+        <li>You can use .xlsx, .xls, or .csv files</li>
+        <li>Duplicate books (same title and author) will not be imported</li>
+        <li>Empty cells are allowed and will be saved as blank</li>
+    </ul>
+</div>
+
+<form id="importForm" enctype="multipart/form-data">
+    <div class="form-group">
+        <label>Select Excel File</label>
+        <div class="file-upload" id="fileUpload" onclick="document.getElementById('fileInput').click()">
+            <input type="file" id="fileInput" name="file" accept=".xlsx,.xls,.csv" required>
+            <div id="fileLabel">
+                <p style="font-size: 1.2rem; margin-bottom: 0.5rem;">📁 Click to upload or drag and drop</p>
+                <p style="color: #999; font-size: 0.9rem;">Supported formats: Excel (.xlsx, .xls) or CSV</p>
+            </div>
+        </div>
+    </div>
+    
+    <div id="fileInfo" style="display: none; margin-top: 1rem; padding: 1rem; background: #f0f7ff; border-radius: 8px; border: 1px solid #b3e5fc;">
+        <p><strong>Selected file:</strong> <span id="fileName"></span></p>
+        <p><strong>File size:</strong> <span id="fileSize"></span></p>
+    </div>
+    
+    <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+        <button type="submit" class="btn btn-primary" id="importBtn">📤 Import Books</button>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+    </div>
+</form>
+
+<div id="importResult" style="display: none; margin-top: 2rem;">
+    <div id="resultContent"></div>
+</div>
+
+<script>
+    const fileInput = document.getElementById('fileInput');
+    const fileUpload = document.getElementById('fileUpload');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileLabel = document.getElementById('fileLabel');
+    
+    fileInput.addEventListener('change', function() {
+        if (this.files.length > 0) {
+            const file = this.files[0];
+            document.getElementById('fileName').textContent = file.name;
+            document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(2) + ' KB';
+            fileLabel.style.display = 'none';
+            fileInfo.style.display = 'block';
+        }
+    });
+    
+    fileUpload.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.style.borderColor = '#667eea';
+        this.style.background = '#f0f1ff';
+    });
+    
+    fileUpload.addEventListener('dragleave', function(e) {
+        this.style.borderColor = '#667eea';
+        this.style.background = '#f8f9fa';
+    });
+    
+    fileUpload.addEventListener('drop', function(e) {
+        e.preventDefault();
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            fileInput.files = files;
+            fileInput.dispatchEvent(new Event('change'));
+        }
+    });
+    
+    document.getElementById('importForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const importBtn = document.getElementById('importBtn');
+        const originalText = importBtn.textContent;
+        
+        importBtn.disabled = true;
+        importBtn.textContent = '⏳ Importing...';
+        
+        fetch('{{ url_for("import_excel") }}', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            const resultDiv = document.getElementById('importResult');
+            const resultContent = document.getElementById('resultContent');
+            
+            if (data.success) {
+                let html = `
+                    <div class="alert alert-success">
+                        <div>
+                            <strong>✅ ${data.message}</strong>
+                            <p style="margin-top: 0.5rem;"><strong>${data.imported_count}</strong> books imported successfully!</p>
+                        </div>
+                    </div>
+                `;
+                
+                if (data.errors && data.errors.length > 0) {
+                    html += '<div style="margin-top: 1rem;"><h4>⚠️ Warnings:</h4><ul style="margin-left: 1.5rem;">';
+                    data.errors.forEach(error => {
+                        html += `<li>${error}</li>`;
+                    });
+                    html += '</ul></div>';
+                }
+                
+                resultContent.innerHTML = html;
+                resultDiv.style.display = 'block';
+                
+                setTimeout(() => {
+                    window.location.href = '{{ url_for("index") }}';
+                }, 2000);
+            } else {
+                resultContent.innerHTML = `
+                    <div class="alert alert-error">
+                        <strong>❌ Error:</strong> ${data.message}
+                    </div>
+                `;
+                resultDiv.style.display = 'block';
+            }
+        })
+        .catch(error => {
+            document.getElementById('resultContent').innerHTML = `
+                <div class="alert alert-error">
+                    <strong>❌ Error:</strong> ${error}
+                </div>
+            `;
+            document.getElementById('importResult').style.display = 'block';
+        })
+        .finally(() => {
+            importBtn.disabled = false;
+            importBtn.textContent = originalText;
+        });
+    });
+</script>
+{% endblock %}
