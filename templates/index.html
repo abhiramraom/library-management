@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Books - Library Management System{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>📖 Book Library</h2>
+    <p>Total Books: <strong>{{ books.total }}</strong></p>
+</div>
+
+<div class="search-box">
+    <input type="text" id="searchInput" placeholder="Search by title, author, publisher, language..." 
+           value="{{ search }}" onkeypress="if(event.key === 'Enter') searchBooks()">
+    <button class="btn btn-primary" onclick="searchBooks()">🔍 Search</button>
+    <a href="{{ url_for('add_book') }}" class="btn btn-success">➕ Add New Book</a>
+    <a href="{{ url_for('export_excel') }}" class="btn btn-secondary">📥 Export</a>
+</div>
+
+{% if books.items %}
+<table>
+    <thead>
+        <tr>
+            <th><a href="?search={{ search }}&sort_by=title&sort_order={% if sort_by == 'title' and sort_order == 'asc' %}desc{% else %}asc{% endif %}">Title {% if sort_by == 'title' %}{% if sort_order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a></th>
+            <th>Author</th>
+            <th><a href="?search={{ search }}&sort_by=language&sort_order={% if sort_by == 'language' and sort_order == 'asc' %}desc{% else %}asc{% endif %}">Language {% if sort_by == 'language' %}{% if sort_order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a></th>
+            <th><a href="?search={{ search }}&sort_by=publisher&sort_order={% if sort_by == 'publisher' and sort_order == 'asc' %}desc{% else %}asc{% endif %}">Publisher {% if sort_by == 'publisher' %}{% if sort_order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a></th>
+            <th><a href="?search={{ search }}&sort_by=year&sort_order={% if sort_by == 'year' and sort_order == 'asc' %}desc{% else %}asc{% endif %}">Year {% if sort_by == 'year' %}{% if sort_order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a></th>
+            <th>Country</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for book in books.items %}
+        <tr>
+            <td>
+                <strong>{{ book.title }}</strong>
+                {% if book.subtitle %}<br><small>{{ book.subtitle }}</small>{% endif %}
+            </td>
+            <td>{{ book.author or '-' }}</td>
+            <td><span style="background: #e8f0fe; padding: 0.25rem 0.75rem; border-radius: 20px;">{{ book.language or '-' }}</span></td>
+            <td>{{ book.publisher or '-' }}</td>
+            <td>{{ book.year or '-' }}</td>
+            <td>{{ book.country or '-' }}</td>
+            <td>
+                <div class="action-buttons">
+                    <a href="{{ url_for('edit_book', book_id=book.id) }}" class="btn btn-primary btn-sm">✏️ Edit</a>
+                    <button onclick="deleteBook({{ book.id }})" class="btn btn-danger btn-sm">🗑️ Delete</button>
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% if books.pages > 1 %}
+<div class="pagination">
+    {% if books.has_prev %}
+        <a href="?page=1&search={{ search }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">« First</a>
+        <a href="?page={{ books.prev_num }}&search={{ search }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">‹ Prev</a>
+    {% endif %}
+    
+    {% for page_num in books.iter_pages(left_margin=1, right_margin=1) %}
+        {% if page_num %}
+            {% if page_num == books.page %}
+                <span class="active">{{ page_num }}</span>
+            {% else %}
+                <a href="?page={{ page_num }}&search={{ search }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">{{ page_num }}</a>
+            {% endif %}
+        {% else %}
+            <span>...</span>
+        {% endif %}
+    {% endfor %}
+    
+    {% if books.has_next %}
+        <a href="?page={{ books.next_num }}&search={{ search }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Next ›</a>
+        <a href="?page={{ books.pages }}&search={{ search }}&sort_by={{ sort_by }}&sort_order={{ sort_order }}">Last »</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% else %}
+<div style="text-align: center; padding: 3rem; color: #999;">
+    <p style="font-size: 1.2rem;">📚 No books found</p>
+    <p>{% if search %}Try a different search term or {% endif %}<a href="{{ url_for('add_book') }}">add a new book</a></p>
+</div>
+{% endif %}
+
+<script>
+    function searchBooks() {
+        const search = document.getElementById('searchInput').value;
+        window.location.href = `?search=${encodeURIComponent(search)}&sort_by=title&sort_order=asc`;
+    }
+</script>
+{% endblock %}
